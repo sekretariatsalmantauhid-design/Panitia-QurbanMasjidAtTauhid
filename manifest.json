@@ -1,15 +1,16 @@
 {
-  "name": "Data Qurban At Tauhid",
+  "name": "Panitia Qurban At Tauhid",
   "short_name": "Qurban Pro",
-  "start_url": "./index.html",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#faf5f5",
   "theme_color": "#7f1d1d",
   "icons": [
     {
-      "src": "logo.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
