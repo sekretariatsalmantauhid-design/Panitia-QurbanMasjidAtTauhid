@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Qurban Masjid At Tauhid</title>
-        <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#7f1d1d">
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -31,7 +32,6 @@
             .print\:hide-btn { display: none !important; }
             table { width: 100% !important; border-collapse: collapse; }
             th, td { border: 1px solid #e2e8f0 !important; padding: 6px !important; }
-            /* Memaksa background color ikut terprint */
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
     </style>
@@ -39,7 +39,7 @@
 <body class="text-gray-800 antialiased selection:bg-red-200">
 
     <div id="toast" class="fixed bottom-5 right-5 transform translate-y-20 opacity-0 transition-all duration-300 z-[200] bg-gray-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 pointer-events-none">
-        <i id="toast-icon" class="fa-solid fa-circle-check text-red-400 text-lg"></i>
+        <i id="toast-icon" class="fa-solid fa-circle-info text-red-400 text-lg"></i>
         <span id="toast-msg" class="font-medium text-sm">Pesan</span>
     </div>
 
@@ -220,12 +220,14 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+        // MENDAMBAHKAN DATABASE URL KHUSUS SERVER SINGAPURA
         const firebaseConfig = {
             apiKey: "AIzaSyCFKPo4PnHWhfGuPyReaBhetynfD-l7b1o",
             authDomain: "data-shohibulqurban.firebaseapp.com",
+            databaseURL: "https://data-shohibulqurban-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "data-shohibulqurban",
             storageBucket: "data-shohibulqurban.firebasestorage.app",
             messagingSenderId: "1030644714889",
@@ -235,10 +237,11 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
-        // HYBRID STORAGE CACHE
-        window.shohibulList = JSON.parse(localStorage.getItem('qurban_shohibul')) || [];
-        window.qurbanData = JSON.parse(localStorage.getItem('qurban_data')) || {};
-        window.panitiaList = JSON.parse(localStorage.getItem('qurban_panitia')) || [];
+        // VARIABEL MURNI (TANPA LOCAL STORAGE)
+        window.shohibulList = [];
+        window.qurbanData = {};
+        window.panitiaList = [];
+        
         const PIN_RAHASIA = "1234"; 
         let syncTimeout = null; 
 
@@ -259,6 +262,7 @@
             if (document.getElementById('pin-input').value === PIN_RAHASIA) {
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('main-app').classList.remove('hidden');
+                
                 window.renderAllTables();
                 window.renderPanitiaTable();
                 window.loadFirebaseData();
@@ -284,36 +288,48 @@
             activeBtn.classList.remove('text-gray-500');
         };
 
+        // FUNGSI PUSAT PENARIKAN DATA FIREBASE
         window.loadFirebaseData = function() {
             onValue(ref(database, 'qurban_2024/shohibul'), (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     window.shohibulList = Array.isArray(data) ? data : Object.values(data);
-                    localStorage.setItem('qurban_shohibul', JSON.stringify(window.shohibulList));
-                    if(!window.isUserTyping()) {
-                        window.renderShohibulTable();
-                        window.renderAllTables();
-                    }
+                } else {
+                    window.shohibulList = [];
                 }
+                if(!window.isUserTyping()) {
+                    window.renderShohibulTable();
+                    window.renderAllTables();
+                }
+            }, (error) => {
+                window.showToast("Gagal narik data! Cek Rules Firebase Bos.", "error");
+                console.error("Firebase Error:", error);
             });
+            
             onValue(ref(database, 'qurban_2024/data'), (snapshot) => {
                 if (snapshot.exists()) {
                     window.qurbanData = snapshot.val();
-                    localStorage.setItem('qurban_data', JSON.stringify(window.qurbanData));
-                    if(!window.isUserTyping()) window.renderAllTables();
+                } else {
+                    window.qurbanData = {};
+                }
+                if(!window.isUserTyping()) {
+                    window.renderAllTables();
                 }
             });
+            
             onValue(ref(database, 'qurban_2024/panitia'), (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     window.panitiaList = Array.isArray(data) ? data : Object.values(data);
-                    localStorage.setItem('qurban_panitia', JSON.stringify(window.panitiaList));
-                    if(!window.isUserTyping()) window.renderPanitiaTable();
+                } else {
+                    window.panitiaList = [];
+                }
+                if(!window.isUserTyping()) {
+                    window.renderPanitiaTable();
                 }
             });
         };
 
-        // KODE PANITIA DIPERBARUI
         window.addPanitia = function() {
             const bagian = document.getElementById('new-panitia-bagian').value.trim() || 'Tanpa Bagian';
             const jabatan = document.getElementById('new-panitia-jabatan').value.trim() || 'Anggota';
@@ -323,29 +339,26 @@
             if (!nama && !tugas) return window.showToast('Isi nama atau tugas panitia!');
 
             const newId = 'PNT_' + Date.now();
-            // Menambahkan field jabatan ke dalam object penyimpanan
             window.panitiaList.push({ id: newId, bagian, jabatan, nama, tugas });
             
-            localStorage.setItem('qurban_panitia', JSON.stringify(window.panitiaList));
-            
-            // Mengosongkan field kecuali 'Bagian' supaya mudah jika ingin menginput anggota divisi yang sama berulang kali
             document.getElementById('new-panitia-jabatan').value = '';
             document.getElementById('new-panitia-nama').value = '';
             document.getElementById('new-panitia-tugas').value = '';
             document.getElementById('new-panitia-jabatan').focus();
             
             window.renderPanitiaTable();
-            set(ref(database, 'qurban_2024/panitia'), window.panitiaList);
-            window.showToast('Data Panitia Ditambahkan!');
+            
+            set(ref(database, 'qurban_2024/panitia'), window.panitiaList).then(() => {
+                window.showToast('Data Panitia Tersimpan di Cloud!');
+            }).catch(err => {
+                window.showToast('Gagal Simpan! Aturan Firebase terkunci.', 'error');
+            });
         };
 
         window.editPanitia = function(id, field, value) {
             const idx = window.panitiaList.findIndex(p => p.id === id);
             if (idx !== -1) {
                 window.panitiaList[idx][field] = value;
-                localStorage.setItem('qurban_panitia', JSON.stringify(window.panitiaList));
-                
-                // Kalau yang diedit adalah "Bagian" atau "Jabatan", render ulang agar terurut/pindah tabel dengan rapi
                 if(field === 'bagian' || field === 'jabatan') window.renderPanitiaTable();
 
                 clearTimeout(syncTimeout);
@@ -358,17 +371,14 @@
         window.deletePanitia = function(id) {
             if(!confirm('Hapus baris ini?')) return;
             window.panitiaList = window.panitiaList.filter(p => p.id !== id);
-            localStorage.setItem('qurban_panitia', JSON.stringify(window.panitiaList));
             window.renderPanitiaTable();
             set(ref(database, 'qurban_2024/panitia'), window.panitiaList);
         };
 
-        // FUNGSI RENDER TABEL PANITIA DIPERBARUI
         window.renderPanitiaTable = function() {
             const container = document.getElementById('panitia-tables-container');
             if(!container) return; 
             
-            // 1. Kelompokkan data panitia berdasarkan Bagian (Divisi)
             const groupedPanitia = {};
             window.panitiaList.forEach(pnt => {
                 const bagian = pnt.bagian || 'Tanpa Bagian';
@@ -378,8 +388,6 @@
 
             let finalHtml = '';
             Object.keys(groupedPanitia).sort().forEach(bagian => {
-                
-                // 2. Logika Cerdas Sorting Jabatan (Ketua di atas, Anggota di bawah)
                 const getRank = (jabatanStr) => {
                     const j = (jabatanStr || '').toLowerCase();
                     if (j === 'ketua' || (j.includes('ketua') && !j.includes('wakil'))) return 1;
@@ -387,10 +395,9 @@
                     if (j.includes('sekretaris')) return 3;
                     if (j.includes('bendahara')) return 4;
                     if (j.includes('anggota')) return 6;
-                    return 5; // Jabatan lainnya yang ga spesifik masuk di tengah
+                    return 5; 
                 };
 
-                // Lakukan pengurutan array berdasarkan rank jabatan
                 groupedPanitia[bagian].sort((a, b) => getRank(a.jabatan) - getRank(b.jabatan));
 
                 let tbodyHtml = '';
@@ -416,7 +423,6 @@
                         </tr>`;
                 });
 
-                // Buat wrapper tabel yang sudah menyatu berdasarkan bagian yang sama
                 finalHtml += `
                     <div class="mb-8 page-break-avoid">
                         <h3 class="text-md font-extrabold text-purple-900 mb-3 flex items-center gap-2 uppercase">
@@ -445,7 +451,6 @@
             container.innerHTML = finalHtml || `<div class="p-10 text-center text-gray-400 italic text-sm border-2 border-dashed border-gray-200 rounded-2xl">Belum ada struktur panitia. Mulai tambahkan di atas!</div>`;
         };
 
-        // KODE SHOHIBUL DAN QURBAN
         window.addShohibul = function() {
             const input = document.getElementById('new-shohibul-name');
             const name = input.value.trim();
@@ -453,18 +458,22 @@
             const newId = 'SHB_' + new Date().getTime();
             window.shohibulList.push({ id: newId, name: name });
             
-            localStorage.setItem('qurban_shohibul', JSON.stringify(window.shohibulList));
             input.value = ''; input.focus();
             window.renderShohibulTable();
             window.renderAllTables();
-            set(ref(database, 'qurban_2024/shohibul'), window.shohibulList);
+            
+            set(ref(database, 'qurban_2024/shohibul'), window.shohibulList).then(() => {
+                window.showToast('Shohibul Tersimpan di Cloud!');
+            }).catch(err => {
+                window.showToast('Gagal Simpan! Aturan Firebase terkunci.', 'error');
+            });
         };
 
         window.editShohibul = function(id, newName) {
             const index = window.shohibulList.findIndex(s => s.id === id);
             if (index !== -1 && newName.trim()) {
                 window.shohibulList[index].name = newName;
-                localStorage.setItem('qurban_shohibul', JSON.stringify(window.shohibulList));
+                
                 clearTimeout(syncTimeout);
                 syncTimeout = setTimeout(() => {
                     set(ref(database, 'qurban_2024/shohibul'), window.shohibulList);
@@ -477,10 +486,9 @@
             window.shohibulList = window.shohibulList.filter(s => s.id !== id);
             delete window.qurbanData[id];
             
-            localStorage.setItem('qurban_shohibul', JSON.stringify(window.shohibulList));
-            localStorage.setItem('qurban_data', JSON.stringify(window.qurbanData));
             window.renderShohibulTable();
             window.renderAllTables();
+            
             set(ref(database, 'qurban_2024/shohibul'), window.shohibulList);
             set(ref(database, 'qurban_2024/data/' + id), null);
         };
@@ -547,8 +555,6 @@
             
             if(field === 'no_hewan') window.hitungTipePatunganSapi();
             
-            localStorage.setItem('qurban_data', JSON.stringify(window.qurbanData));
-            
             clearTimeout(syncTimeout);
             syncTimeout = setTimeout(() => {
                 set(ref(database, 'qurban_2024/data'), window.qurbanData).catch(err => console.error(err));
@@ -561,7 +567,6 @@
             
             if(field === 'hewan') window.hitungTipePatunganSapi();
 
-            localStorage.setItem('qurban_data', JSON.stringify(window.qurbanData));
             window.renderAllTables(); 
 
             clearTimeout(syncTimeout);
@@ -893,11 +898,13 @@
             container.innerHTML = finalHtml;
         };
 
-        window.onload = () => { 
-            window.renderPanitiaTable();
-            window.renderShohibulTable(); 
-            window.renderAllTables();
-        };
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW Berhasil Didaftarkan'))
+                    .catch(err => console.log('SW Gagal', err));
+            });
+        }
     </script>
 </body>
 </html>
