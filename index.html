@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Qurban Masjid At Tauhid</title>
-    <link rel="icon" type="image/png" href="logo.png">
-    <link rel="apple-touch-icon" href="logo.png">
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -900,11 +898,22 @@
             container.innerHTML = finalHtml;
         };
 
+    </script>
+    
+    <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
                     .then(reg => console.log('SW Berhasil Didaftarkan'))
                     .catch(err => console.log('SW Gagal', err));
+            });
+
+            // Auto-Refresh layar kalau ada update dari sw.js
+            let refreshing;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                window.location.reload();
+                refreshing = true;
             });
         }
     </script>
