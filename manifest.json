@@ -1,7 +1,7 @@
 {
   "name": "Data Qurban At Tauhid",
   "short_name": "Qurban Pro",
-  "start_url": "./Panitia-QurbanMasjidAtTauhid/",
+  "start_url": "./index.html/",
   "display": "standalone",
   "background_color": "#faf5f5",
   "theme_color": "#7f1d1d",
